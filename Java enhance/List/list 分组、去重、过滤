@@ -1,0 +1,174 @@
+package com.mightxuh.base;
+
+import java.math.BigDecimal;
+
+public class UserVO {
+
+	private String name;
+	 
+	private int age;
+	private BigDecimal familyMemberQuantity;
+	
+	private String sex;
+	
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public int getAge() {
+		return age;
+	}
+	public void setAge(int age) {
+		this.age = age;
+	}
+	public BigDecimal getFamilyMemberQuantity() {
+		return familyMemberQuantity;
+	}
+	public void setFamilyMemberQuantity(BigDecimal familyMemberQuantity) {
+		this.familyMemberQuantity = familyMemberQuantity;
+	}
+	
+	public String getSex() {
+        return sex;
+    }
+ 
+    public void setSex(String sex) {
+        this.sex = sex;
+    }
+
+}
+
+=====
+
+package com.mightxuh.base;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+
+public class ListDO {
+	
+	public void groupList(List list){
+		
+		//group
+	    Map<String, List<UserVO>> groupBySex = (Map<String, List<UserVO>>) list.stream().collect(Collectors.groupingBy(UserVO::getSex));
+	    
+	    for (Map.Entry<String, List<UserVO>> entryUser : groupBySex.entrySet()) {
+	        String key = entryUser.getKey();
+	        List<UserVO> entryUserList = entryUser.getValue();
+	    }
+	    
+	    // group by multiple keys
+		Function<UserVO, List<Object>> compositeKey = wlb -> Arrays.<Object> asList(
+				wlb.getName(), wlb.getAge(), wlb.getSex());
+		
+		Map<Object, List<UserVO>> map = (Map<Object, List<UserVO>>) list.stream()
+				.collect(Collectors.groupingBy(compositeKey, Collectors.toList()));
+
+
+		for (Map.Entry<Object, List<UserVO>> entryUser : map.entrySet()) {
+			List<Object> key = (List<Object>) entryUser.getKey();
+			List<UserVO> entryUserList = entryUser.getValue();
+			Long warehouseReceiptLineId = (Long) key.get(0);
+			Long warehouseAreaId = (Long) key.get(0);
+			Long warehouseLocationId = (Long) key.get(0);
+
+		}
+		
+		// filter
+		List<UserVO> result = (List<UserVO>) list.stream().filter(item -> ((UserVO) item).getSex().equals("FEMALE")).collect(Collectors.toList()); 
+		
+		int sumAge = list.stream().mapToInt(UserVO::getAge).sum();
+        //BigDecimal求和
+        BigDecimal totalQuantity = list.stream().map(UserVO::getFamilyMemberQuantity).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+	}
+}
+
+===========
+
+使用重写的方法
+
+BigDecimal totalQuantity2 = userList.stream().map(User::getFamilyMemberQuantity).reduce(BigDecimal.ZERO, BigDecimalUtils::sum);
+判断对象空
+
+stream.filter(x -> x!=null)
+stream.filter(Objects::nonNull)
+判断字段空
+
+stream.filter(x -> x.getDateTime()!=null)
+ 
+
+4.最值
+
+求最小与最大，使用min max方法
+
+        //最小
+        Date minEntryDate = userList.stream().map(User::getEntryDate).min(Date::compareTo).get();
+ 
+        //最大
+        Date maxEntryDate = userList.stream().map(User::getEntryDate).max(Date::compareTo).get();
+有时候我们需要知道最大最小对应的这个对象，我们可以通过如下方法获取
+
+Comparator<LeasingBusinessContract> comparator = Comparator.comparing(LeasingBusinessContract::getLeaseEndDate);
+LeasingBusinessContract maxObject = leasingBusinessContractList.stream().max(comparator).get();
+5.List 转map
+
+         /**
+         * List -> Map
+         * 需要注意的是：
+         * toMap 如果集合对象有重复的key，会报错Duplicate key ....
+         *  user1,user2的id都为1。
+         *  可以用 (k1,k2)->k1 来设置，如果有重复的key,则保留key1,舍弃key2
+         */
+        Map<Long, User> userMap = userList.stream().collect(Collectors.toMap(User::getId, a -> a,(k1,k2)->k1));
+list转map的时候有时候会将date类型作为key，实际情况中使用string的多，我们可以将某个字段转成string
+
+Map<String, WorkCenterLoadVo> workCenterMap = list.stream().collect(Collectors.toMap(key->DateFormatUtils.format(key.getDate(), "yyyy-MM-dd"), a -> a,(k1,k2)->k1));
+ 
+
+6.排序
+
+可通过Sort对单字段多字段排序
+
+        //排序
+        //单字段排序，根据id排序
+        userList.sort(Comparator.comparing(User::getId));
+        //多字段排序，根据id，年龄排序
+        userList.sort(Comparator.comparing(User::getId).thenComparing(User::getAge));
+7.去重
+
+可通过distinct方法进行去重
+
+        //去重
+        List<Long> idList = new ArrayList<Long>();
+        idList.add(1L);
+        idList.add(1L);
+        idList.add(2L);
+        List<Long> distinctIdList = idList.stream().distinct().collect(Collectors.toList());
+针对属性去重
+
+List<AddOutboundNoticeDetailsBatchVo> entryDetailsBatchDistinctBatchIdList = entryDetailsBatchList.stream().filter(distinctByKey(b -> b.getMaterialBatchNumberId())).collect(Collectors.toList());
+                
+//distinctByKey自己定义
+    public static <T> Predicate<T> distinctByKey(Function<? super T, Object> keyExtractor) {
+        Map<Object, Boolean> seen = new ConcurrentHashMap<>();
+        return t -> seen.putIfAbsent(keyExtractor.apply(t), Boolean.TRUE) == null;
+    }
+8.获取list某个字段组装新list
+
+        //获取list对象的某个字段组装成新list
+        List<Long> userIdList = userList.stream().map(a -> a.getId()).collect(Collectors.toList());
+9.批量设置list列表字段为同一个值
+
+addList.stream().forEach(a -> a.setDelFlag("0"));
+10.不同实体的list拷贝
+
+List<TimePeriodDate> timePeriodDateList1 = calendarModelVoList.stream().map(p->{TimePeriodDate e = new TimePeriodDate(); e.setStartDate(p.getBegin());e.setEndDate(p.getEnd()); return e;}).collect(Collectors.toList());
+ 
