@@ -20,3 +20,8 @@ If yes, is there a way to get the value of a key without loading everything into
 Ans:
 With the replicated map the whole map is replicated to all members in the cluster. So it will always be fully in memory on those members.
 On the client side, only the value is pulled into memory when you call replicatedMap.get(key)
+
+
+==============================================================
+
+spring-cache is just an abstraction over a cache implementation. If you make sure to have hazelcast-spring on the classpath, Hazelcast will be chosen as the implementation, and you can configure it however you want. If you want control over the initialization sequence e.g. bean X before bean Y, you should pass X as an argument to the method that return Y. In the code above, Spring guarantees the CacheManager is instantiated before calling the run() method. 
